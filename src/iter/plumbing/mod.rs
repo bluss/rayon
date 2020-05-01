@@ -464,8 +464,13 @@ where
 {
     if consumer.full() {
         consumer.into_folder().complete()
-    } else if splitter.try_split(migrated) {
-        match producer.split() {
+    } else {
+        let split_producer = if splitter.try_split(migrated) {
+            producer.split()
+        } else {
+            (producer, None)
+        };
+        match split_producer {
             (left_producer, Some(right_producer)) => {
                 let (reducer, left_consumer, right_consumer) =
                     (consumer.to_reducer(), consumer.split_off_left(), consumer);
@@ -478,7 +483,5 @@ where
             }
             (producer, None) => producer.fold_with(consumer.into_folder()).complete(),
         }
-    } else {
-        producer.fold_with(consumer.into_folder()).complete()
     }
 }
